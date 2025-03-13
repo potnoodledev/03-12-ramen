@@ -36,18 +36,25 @@ const config = {
 window.addEventListener('load', () => {
     const game = new Phaser.Game(config);
     
-    // Handle mobile browser issues
+    // Handle resize events for better responsiveness
     window.addEventListener('resize', () => {
         game.scale.refresh();
     });
     
     // Prevent default touch behavior on mobile
     document.addEventListener('touchmove', (e) => {
-        e.preventDefault();
+        if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+        }
     }, { passive: false });
     
     // Handle iOS Safari viewport issues
     if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
         window.scrollTo(0, 0);
     }
+    
+    // Force an initial scale refresh to ensure proper centering
+    setTimeout(() => {
+        game.scale.refresh();
+    }, 100);
 }); 
