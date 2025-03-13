@@ -1,0 +1,27 @@
+{
+  "name": "ramen-noodle-maker",
+  "version": "1.0.0",
+  "description": "An idle/cooking game about making ramen noodles",
+  "main": "index.js",
+  "scripts": {
+    "start": "parcel src/index.html",
+    "build": "parcel build src/index.html --public-url ./",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "phaser",
+    "game",
+    "ramen",
+    "noodles",
+    "cooking",
+    "idle"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "phaser": "^3.60.0"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.12.5"
+  }
+} 
