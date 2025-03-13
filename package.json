@@ -6,7 +6,7 @@
   "homepage": "https://potnoodledev.github.io/03-12-ramen",
   "scripts": {
     "start": "parcel src/index.html",
-    "build": "parcel build src/index.html --public-url ./",
+    "build": "parcel build src/index.html --public-url ./ && cp src/.nojekyll dist/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
