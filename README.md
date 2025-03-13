@@ -12,6 +12,13 @@ This is an idle/cooking game where players make ramen noodles through a series o
 
 Each completed cycle adds to your rolled dough count, which can later be used for upgrades and progression.
 
+## Play Online
+
+You can play the latest version of the game on GitHub Pages:
+[Play Ramen Noodle Maker](https://YOUR_USERNAME.github.io/03-12-ramen/)
+
+*Note: Replace 'YOUR_USERNAME' with your actual GitHub username once deployed.*
+
 ## Development Setup
 
 ### Prerequisites
@@ -56,6 +63,16 @@ yarn build
 ```
 
 The built files will be in the `dist` directory.
+
+### Deployment
+
+The game is automatically deployed to GitHub Pages when changes are pushed to the main branch, using GitHub Actions.
+
+To manually trigger a deployment:
+1. Go to the GitHub repository
+2. Navigate to Actions tab
+3. Select the "Deploy to GitHub Pages" workflow
+4. Click "Run workflow"
 
 ## Game Mechanics
 

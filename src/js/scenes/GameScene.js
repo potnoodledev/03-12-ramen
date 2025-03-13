@@ -21,10 +21,9 @@ export default class GameScene extends Phaser.Scene {
         
         // Cutting noodles state variables
         this.cutsMade = 0;
-        this.requiredCuts = 5;
+        this.requiredCuts = 8;
         this.cutLines = [];
         this.cutSensitivity = 1.2;  // Higher = more responsive to vertical swipes
-        this.doughSlices = [];      // Store the dough slices after cutting
         
         // Gesture sensitivity settings
         this.pullSensitivity = 1.5;    // Higher = more responsive to downward gestures
@@ -50,28 +49,33 @@ export default class GameScene extends Phaser.Scene {
         this.createDough();
         this.createProgressBar();
         this.createCounterDisplay();
-        this.createDebugInfo();
+        this.setupInput(); // Setup input first
+        this.createDebugInfo(); // Create debug button after input setup
         this.createGestureIndicator();
         this.createCuttingGuide();
-        this.setupInput();
         
         // Add initial instruction text
         const width = this.cameras.main.width;
         this.instructionText = this.add.text(width / 2, this.doughCenterY + 150, 'Drag DOWN anywhere to pull dough!', {
             font: '24px Arial',
-            fill: '#000000'
+            fill: '#ffffff'
         }).setOrigin(0.5);
         
         // Add subtitle instruction
         this.subtitleText = this.add.text(width / 2, this.doughCenterY + 180, '(You can drag anywhere on screen)', {
             font: '18px Arial',
-            fill: '#555555'
+            fill: '#aaaaaa'
         }).setOrigin(0.5);
+        
+        // Ensure debug button is on top of everything
+        if (this.debugButtonContainer) {
+            this.debugButtonContainer.setDepth(1000);
+        }
     }
 
     createBackground() {
-        // Simple background
-        this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0xf8f8f8)
+        // Change background to black
+        this.add.rectangle(0, 0, this.cameras.main.width, this.cameras.main.height, 0x000000)
             .setOrigin(0, 0);
     }
 
@@ -86,9 +90,9 @@ export default class GameScene extends Phaser.Scene {
             console.log('Dough texture dimensions:', frame.width, 'x', frame.height);
         } else {
             console.error('Dough texture not found!');
-            // Create a fallback circle if texture is missing
-            this.dough = this.add.circle(centerX, -50, 80, 0xf5e6c8);
-            this.dough.setStrokeStyle(4, 0xe6d2a8);
+            // Create a fallback circle if texture is missing - lighter color for dark background
+            this.dough = this.add.circle(centerX, -50, 80, 0xfff0d0);
+            this.dough.setStrokeStyle(4, 0xf5e6c8);
         }
         
         this.dough.setScale(1);
@@ -100,11 +104,6 @@ export default class GameScene extends Phaser.Scene {
         this.doughStartY = this.dough.y;
         this.doughCenterY = this.cameras.main.height / 3;
         this.doughEndX = this.cameras.main.width + this.dough.displayWidth / 2;
-        
-        // Add a visual indicator for the center position (for debugging)
-        this.centerLine = this.add.graphics();
-        this.centerLine.lineStyle(2, 0xff0000, 0.5);
-        this.centerLine.lineBetween(0, this.doughCenterY, this.cameras.main.width, this.doughCenterY);
         
         console.log('Dough created at position:', this.dough.x, this.dough.y);
         console.log('Dough center Y position:', this.doughCenterY);
@@ -130,20 +129,23 @@ export default class GameScene extends Phaser.Scene {
             this.progressBarFill.setDisplaySize(0, 40);
         } else {
             console.error('Progress bar textures not found!');
-            // Create fallback graphics
-            this.progressBarContainer = this.add.rectangle(width / 2, progressBarY, 300, 40, 0xdddddd);
-            this.progressBarContainer.setStrokeStyle(2, 0xbbbbbb);
+            // Create fallback graphics with dark theme colors
+            this.progressBarContainer = this.add.rectangle(width / 2, progressBarY, 300, 40, 0x333333);
+            this.progressBarContainer.setStrokeStyle(2, 0x555555);
             
-            this.progressBarFill = this.add.rectangle(width / 2 - 150, progressBarY, 0, 40, 0xf8d568);
+            this.progressBarFill = this.add.rectangle(width / 2 - 150, progressBarY, 0, 40, 0x00aaff);
             this.progressBarFill.setOrigin(0, 0.5);
-            this.progressBarFill.setStrokeStyle(2, 0xe8c558);
+            this.progressBarFill.setStrokeStyle(2, 0x0088cc);
         }
         
-        // Progress text
+        // Progress text with improved readability
         this.progressText = this.add.text(width / 2, progressBarY, '0%', {
-            font: '18px Arial',
-            fill: '#000000'
+            font: 'bold 20px Arial',
+            fill: '#ffffff'
         }).setOrigin(0.5);
+        
+        // Add text shadow for better readability against any background
+        this.progressText.setShadow(2, 2, '#000000', 3, true, true);
         
         // Make progress bar responsive to screen size
         this.scale.on('resize', this.resizeProgressBar, this);
@@ -171,20 +173,20 @@ export default class GameScene extends Phaser.Scene {
         
         // Counter background
         this.counterBg = this.add.graphics();
-        this.counterBg.fillStyle(0xffffff, 0.8);
+        this.counterBg.fillStyle(0x333333, 0.8);
         this.counterBg.fillRoundedRect(width - 150, 20, 130, 60, 10);
-        this.counterBg.lineStyle(2, 0xcccccc, 1);
+        this.counterBg.lineStyle(2, 0x555555, 1);
         this.counterBg.strokeRoundedRect(width - 150, 20, 130, 60, 10);
         
         // Counter text
         this.counterTitle = this.add.text(width - 85, 35, 'Noodles:', {
             font: '16px Arial',
-            fill: '#000000'
+            fill: '#ffffff'
         }).setOrigin(0.5);
         
         this.counterValue = this.add.text(width - 85, 60, this.rolledDoughCount.toString(), {
             font: '24px Arial',
-            fill: '#000000',
+            fill: '#ffffff',
             fontWeight: 'bold'
         }).setOrigin(0.5);
     }
@@ -224,23 +226,50 @@ export default class GameScene extends Phaser.Scene {
         // Hide debug by default in production
         this.debugContainer.setVisible(false);
         
-        // Add a debug toggle button in the top-right corner
-        const toggleButton = this.add.circle(this.cameras.main.width - 20, 20, 15, 0x333333, 0.7);
-        toggleButton.setInteractive();
-        toggleButton.on('pointerdown', () => {
-            this.debugContainer.setVisible(!this.debugContainer.visible);
-        });
+        // Create a simple debug button using a rectangle (more reliable for touch)
+        const buttonX = 60;
+        const buttonY = 60;
         
-        // Add a "D" label to the toggle button
-        const toggleText = this.add.text(this.cameras.main.width - 20, 20, 'D', {
-            font: '16px Arial',
+        // Create a background rectangle with high contrast
+        this.debugButton = this.add.rectangle(buttonX, buttonY, 80, 80, 0x00aaff, 0.8);
+        this.debugButton.setStrokeStyle(4, 0xffffff);
+        
+        // Make the rectangle interactive with a larger hit area
+        this.debugButton.setInteractive({ useHandCursor: true });
+        
+        // Add text on top
+        this.debugButtonText = this.add.text(buttonX, buttonY, 'DEBUG', {
+            font: 'bold 20px Arial',
             fill: '#ffffff'
         }).setOrigin(0.5);
         
-        // Make sure the toggle button stays in the corner when resizing
+        // Create a container for the debug button to ensure it's above other elements
+        this.debugButtonContainer = this.add.container(0, 0);
+        this.debugButtonContainer.add([this.debugButton, this.debugButtonText]);
+        this.debugButtonContainer.setDepth(1000); // Ensure it's above other elements
+        
+        // Add click handler directly to the button
+        this.debugButton.on('pointerdown', (pointer) => {
+            console.log('Debug button pressed!');
+            // Stop event propagation
+            pointer.event.stopPropagation();
+            
+            // Toggle debug visibility
+            this.debugContainer.setVisible(!this.debugContainer.visible);
+            
+            // Visual feedback
+            this.debugButton.setFillStyle(0xff00ff, 0.9);
+            
+            // Reset after a short delay
+            this.time.delayedCall(100, () => {
+                this.debugButton.setFillStyle(0x00aaff, 0.8);
+            });
+        });
+        
+        // Make sure the button stays in position when resizing
         this.scale.on('resize', (gameSize) => {
-            toggleButton.setPosition(gameSize.width - 20, 20);
-            toggleText.setPosition(gameSize.width - 20, 20);
+            this.debugButton.setPosition(buttonX, buttonY);
+            this.debugButtonText.setPosition(buttonX, buttonY);
         });
     }
 
@@ -282,6 +311,12 @@ export default class GameScene extends Phaser.Scene {
         
         // Track pointer down state
         this.input.on('pointerdown', (pointer) => {
+            // Check if pointer is over the debug button
+            if (this.debugButton && this.debugButton.getBounds().contains(pointer.x, pointer.y)) {
+                // Don't handle game input if clicking on debug button
+                return;
+            }
+            
             this.isDragging = true;
             this.lastPointerPosition = { x: pointer.x, y: pointer.y };
             this.lastPointerAngle = this.getPointerAngle(pointer);
@@ -368,7 +403,7 @@ export default class GameScene extends Phaser.Scene {
                 if (!this.instructionText) {
                     this.instructionText = this.add.text(width / 2, this.doughCenterY + 150, 'Make CIRCULAR motions to rotate dough!', {
                         font: '24px Arial',
-                        fill: '#000000'
+                        fill: '#ffffff'
                     }).setOrigin(0.5);
                 } else {
                     this.instructionText.setText('Make CIRCULAR motions to rotate dough!');
@@ -378,7 +413,7 @@ export default class GameScene extends Phaser.Scene {
                 if (!this.subtitleText) {
                     this.subtitleText = this.add.text(width / 2, this.doughCenterY + 180, '(Rotate anywhere on screen)', {
                         font: '18px Arial',
-                        fill: '#555555'
+                        fill: '#aaaaaa'
                     }).setOrigin(0.5);
                 } else {
                     this.subtitleText.setText('(Rotate anywhere on screen)');
@@ -427,7 +462,7 @@ export default class GameScene extends Phaser.Scene {
                 
                 // Update subtitle
                 if (this.subtitleText) {
-                    this.subtitleText.setText('(Swipe UP or DOWN anywhere on screen)');
+                    this.subtitleText.setText('(Swipe UP or DOWN directly on the dough)');
                 }
             }
         }
@@ -458,13 +493,16 @@ export default class GameScene extends Phaser.Scene {
                 }
             }
             
+            // Check if the swipe is within the dough bounds
+            const isWithinDough = this.isWithinDoughBounds(pointer);
+            
             // Only add a new cut if it's not too close to existing cuts and within the dough area
-            if (!isTooClose && this.isWithinDoughBoundsHorizontal(cutX)) {
+            if (!isTooClose && isWithinDough) {
                 // Add a new cut line
                 this.addCutLine(cutX);
                 
-                // Split the dough at this position
-                this.splitDoughAtPosition(cutX);
+                // Add a visual effect to show the cut
+                this.addCutEffect(cutX, this.dough.y);
                 
                 // Increment cut counter
                 this.cutsMade++;
@@ -477,6 +515,11 @@ export default class GameScene extends Phaser.Scene {
                 if (this.cutsMade >= this.requiredCuts) {
                     this.currentState = this.gameState.MOVING_TO_FINISH;
                     console.log('State changed to MOVING_TO_FINISH');
+                    
+                    // Hide the cutting guide when moving to finish
+                    if (this.cuttingGuideContainer) {
+                        this.cuttingGuideContainer.setVisible(false);
+                    }
                     
                     // Update instruction text
                     if (this.instructionText) {
@@ -492,6 +535,22 @@ export default class GameScene extends Phaser.Scene {
         }
     }
     
+    isWithinDoughBounds(pointer) {
+        // Calculate the bounds of the dough based on its current position and scale
+        const doughLeft = this.dough.x - (this.dough.displayWidth / 2);
+        const doughRight = this.dough.x + (this.dough.displayWidth / 2);
+        const doughTop = this.dough.y - (this.dough.displayHeight / 2);
+        const doughBottom = this.dough.y + (this.dough.displayHeight / 2);
+        
+        // Check if the pointer is within the dough bounds
+        return (
+            pointer.x >= doughLeft && 
+            pointer.x <= doughRight && 
+            pointer.y >= doughTop && 
+            pointer.y <= doughBottom
+        );
+    }
+    
     isWithinDoughBoundsHorizontal(x) {
         // Calculate the bounds of the dough based on its current position and scale
         const doughLeft = this.dough.x - (this.dough.displayWidth / 2);
@@ -505,10 +564,19 @@ export default class GameScene extends Phaser.Scene {
         // Create a graphics object for the cut line
         const cutGraphics = this.add.graphics();
         
-        // Draw a dashed line across the dough height
-        const doughHeight = this.dough.displayHeight;
-        const startY = this.dough.y - (doughHeight / 2);
-        const endY = this.dough.y + (doughHeight / 2);
+        // Calculate the dough visual radius (slightly smaller than the full height)
+        const doughRadius = this.dough.displayHeight / 2 * 0.8;
+        
+        // Calculate how far this cut is from the dough center horizontally
+        const distanceFromCenter = Math.abs(x - this.dough.x);
+        
+        // Calculate the vertical height at this x position using the circle equation
+        // For a circle: x² + y² = r², so y = √(r² - x²)
+        const verticalRadius = Math.sqrt(Math.max(0, doughRadius * doughRadius - distanceFromCenter * distanceFromCenter));
+        
+        // Calculate start and end Y positions
+        const startY = this.dough.y - verticalRadius;
+        const endY = this.dough.y + verticalRadius;
         
         // Draw the main cut line with a thicker, more visible style
         cutGraphics.lineStyle(4, 0xffffff, 0.9);
@@ -534,358 +602,13 @@ export default class GameScene extends Phaser.Scene {
         glowGraphics.lineTo(x, endY);
         glowGraphics.strokePath();
         
-        // Store the cut line for reference
+        // Store the cut line for reference with relative position to dough
         this.cutLines.push({
             graphics: cutGraphics,
             glowGraphics: glowGraphics,
-            x: x
-        });
-    }
-
-    splitDoughAtPosition(x) {
-        // If this is the first cut, we need to hide the original dough and create two slices
-        if (this.doughSlices.length === 0) {
-            // Get dough properties
-            const doughX = this.dough.x;
-            const doughY = this.dough.y;
-            const doughWidth = this.dough.displayWidth;
-            const doughHeight = this.dough.displayHeight;
-            const doughRotation = this.dough.rotation;
-            
-            // Hide the original dough
-            this.dough.setVisible(false);
-            
-            // Calculate slice widths
-            const leftSliceWidth = x - (doughX - doughWidth/2);
-            const rightSliceWidth = (doughX + doughWidth/2) - x;
-            
-            // Create left slice
-            const leftSlice = this.createDoughSlice(
-                doughX - (doughWidth/2) + leftSliceWidth/2, 
-                doughY, 
-                leftSliceWidth, 
-                doughHeight,
-                'left',
-                x
-            );
-            
-            // Create right slice
-            const rightSlice = this.createDoughSlice(
-                x + rightSliceWidth/2, 
-                doughY, 
-                rightSliceWidth, 
-                doughHeight,
-                'right',
-                x
-            );
-            
-            // Add slices to the array
-            this.doughSlices.push(leftSlice, rightSlice);
-            
-            // Add a visual effect to show the cut
-            this.addCutEffect(x, doughY, doughHeight);
-        } else {
-            // Find which slice the cut is in
-            let sliceToSplit = null;
-            let sliceIndex = -1;
-            
-            for (let i = 0; i < this.doughSlices.length; i++) {
-                const slice = this.doughSlices[i];
-                if (!slice.visible) continue; // Skip already split slices
-                
-                // Check if this slice contains the cut position
-                let sliceLeft, sliceRight;
-                
-                if (slice.customBounds) {
-                    sliceLeft = slice.customBounds.left;
-                    sliceRight = slice.customBounds.right;
-                } else {
-                    sliceLeft = slice.x - slice.displayWidth/2;
-                    sliceRight = slice.x + slice.displayWidth/2;
-                }
-                
-                if (x >= sliceLeft && x <= sliceRight) {
-                    sliceToSplit = slice;
-                    sliceIndex = i;
-                    break;
-                }
-            }
-            
-            if (sliceToSplit) {
-                // Calculate properties for the new slices
-                let sliceX, sliceY, sliceWidth, sliceHeight, sliceRotation;
-                
-                if (sliceToSplit.customBounds) {
-                    sliceX = sliceToSplit.customBounds.centerX;
-                    sliceY = sliceToSplit.customBounds.centerY;
-                    sliceWidth = sliceToSplit.customBounds.width;
-                    sliceHeight = sliceToSplit.customBounds.height;
-                    sliceRotation = 0; // Custom shapes don't rotate
-                } else {
-                    sliceX = sliceToSplit.x;
-                    sliceY = sliceToSplit.y;
-                    sliceWidth = sliceToSplit.displayWidth;
-                    sliceHeight = sliceToSplit.displayHeight;
-                    sliceRotation = sliceToSplit.rotation;
-                }
-                
-                // Calculate new slice widths
-                let leftSliceWidth, rightSliceWidth, sliceLeft;
-                
-                if (sliceToSplit.customBounds) {
-                    sliceLeft = sliceToSplit.customBounds.left;
-                    leftSliceWidth = x - sliceLeft;
-                    rightSliceWidth = sliceToSplit.customBounds.right - x;
-                } else {
-                    sliceLeft = sliceX - sliceWidth/2;
-                    leftSliceWidth = x - sliceLeft;
-                    rightSliceWidth = (sliceX + sliceWidth/2) - x;
-                }
-                
-                // Hide the original slice
-                sliceToSplit.setVisible(false);
-                
-                // Create left slice
-                const leftSlice = this.createDoughSlice(
-                    sliceLeft + leftSliceWidth/2, 
-                    sliceY, 
-                    leftSliceWidth, 
-                    sliceHeight,
-                    'left',
-                    x
-                );
-                
-                if (!leftSlice.customBounds) {
-                    leftSlice.rotation = sliceRotation;
-                }
-                
-                // Create right slice
-                const rightSlice = this.createDoughSlice(
-                    x + rightSliceWidth/2, 
-                    sliceY, 
-                    rightSliceWidth, 
-                    sliceHeight,
-                    'right',
-                    x
-                );
-                
-                if (!rightSlice.customBounds) {
-                    rightSlice.rotation = sliceRotation;
-                }
-                
-                // Replace the original slice with the two new slices
-                this.doughSlices.splice(sliceIndex, 1, leftSlice, rightSlice);
-                
-                // Add a visual effect to show the cut
-                this.addCutEffect(x, sliceY, sliceHeight);
-            }
-        }
-        
-        // Add a small animation to show the slices separating
-        this.animateSlicesSeparation();
-    }
-    
-    createDoughSlice(x, y, width, height, side, cutX) {
-        // Create a new slice based on the original dough
-        let slice;
-        
-        // Check if the original dough is a circle or a sprite
-        const isCircle = this.dough.type === 'Arc' || this.dough.geom === 'circle';
-        
-        if (isCircle) {
-            // For circular dough, create arc segments
-            const doughRadius = this.dough.radius || this.dough.width / 2;
-            const doughCenterX = this.dough.x;
-            const doughCenterY = this.dough.y;
-            
-            // Create a graphics object for the slice
-            slice = this.add.graphics();
-            
-            // Fill with dough color
-            slice.fillStyle(0xf5e6c8, 1);
-            slice.lineStyle(4, 0xe6d2a8);
-            
-            // Draw the appropriate arc segment based on which side of the cut this is
-            if (side === 'left') {
-                // Draw left segment (from left edge to cut)
-                const leftEdge = doughCenterX - doughRadius;
-                const arcWidth = cutX - leftEdge;
-                
-                // Create a custom shape for the left segment
-                const leftSegment = new Phaser.Geom.Polygon([
-                    // Top of the arc
-                    { x: leftEdge, y: doughCenterY - doughRadius },
-                    // Points along the left side of the circle
-                    { x: leftEdge, y: doughCenterY - doughRadius * 0.7 },
-                    { x: leftEdge, y: doughCenterY - doughRadius * 0.3 },
-                    { x: leftEdge, y: doughCenterY },
-                    { x: leftEdge, y: doughCenterY + doughRadius * 0.3 },
-                    { x: leftEdge, y: doughCenterY + doughRadius * 0.7 },
-                    // Bottom of the arc
-                    { x: leftEdge, y: doughCenterY + doughRadius },
-                    // Cut line (vertical)
-                    { x: cutX, y: doughCenterY + doughRadius },
-                    { x: cutX, y: doughCenterY - doughRadius }
-                ]);
-                
-                slice.fillPoints(leftSegment.points, true);
-                slice.strokePoints(leftSegment.points, true);
-                
-                // Set the position for the graphics object
-                slice.x = 0;
-                slice.y = 0;
-                
-                // Store custom properties for this slice
-                slice.customBounds = {
-                    left: leftEdge,
-                    right: cutX,
-                    top: doughCenterY - doughRadius,
-                    bottom: doughCenterY + doughRadius,
-                    width: arcWidth,
-                    height: doughRadius * 2,
-                    centerX: (leftEdge + cutX) / 2,
-                    centerY: doughCenterY
-                };
-                
-            } else { // side === 'right'
-                // Draw right segment (from cut to right edge)
-                const rightEdge = doughCenterX + doughRadius;
-                const arcWidth = rightEdge - cutX;
-                
-                // Create a custom shape for the right segment
-                const rightSegment = new Phaser.Geom.Polygon([
-                    // Top of the arc at cut
-                    { x: cutX, y: doughCenterY - doughRadius },
-                    // Right edge top
-                    { x: rightEdge, y: doughCenterY - doughRadius },
-                    // Points along the right side of the circle
-                    { x: rightEdge, y: doughCenterY - doughRadius * 0.7 },
-                    { x: rightEdge, y: doughCenterY - doughRadius * 0.3 },
-                    { x: rightEdge, y: doughCenterY },
-                    { x: rightEdge, y: doughCenterY + doughRadius * 0.3 },
-                    { x: rightEdge, y: doughCenterY + doughRadius * 0.7 },
-                    // Bottom of the arc
-                    { x: rightEdge, y: doughCenterY + doughRadius },
-                    // Cut line bottom (vertical)
-                    { x: cutX, y: doughCenterY + doughRadius }
-                ]);
-                
-                slice.fillPoints(rightSegment.points, true);
-                slice.strokePoints(rightSegment.points, true);
-                
-                // Set the position for the graphics object
-                slice.x = 0;
-                slice.y = 0;
-                
-                // Store custom properties for this slice
-                slice.customBounds = {
-                    left: cutX,
-                    right: rightEdge,
-                    top: doughCenterY - doughRadius,
-                    bottom: doughCenterY + doughRadius,
-                    width: arcWidth,
-                    height: doughRadius * 2,
-                    centerX: (cutX + rightEdge) / 2,
-                    centerY: doughCenterY
-                };
-            }
-            
-            // Add custom display width/height properties to match the API of other game objects
-            slice.displayWidth = slice.customBounds.width;
-            slice.displayHeight = slice.customBounds.height;
-            
-            // Override the default position to use our custom bounds
-            Object.defineProperty(slice, 'x', {
-                get: function() { return this.customBounds.centerX; },
-                set: function(value) {
-                    const dx = value - this.customBounds.centerX;
-                    this.customBounds.left += dx;
-                    this.customBounds.right += dx;
-                    this.customBounds.centerX = value;
-                    this.setPosition(this.x, this.y);
-                }
-            });
-            
-            Object.defineProperty(slice, 'y', {
-                get: function() { return this.customBounds.centerY; },
-                set: function(value) {
-                    const dy = value - this.customBounds.centerY;
-                    this.customBounds.top += dy;
-                    this.customBounds.bottom += dy;
-                    this.customBounds.centerY = value;
-                    this.setPosition(this.x, this.y);
-                }
-            });
-            
-        } else {
-            // For rectangular/sprite dough, create a rectangle
-            slice = this.add.rectangle(x, y, width, height, 0xf5e6c8);
-            slice.setStrokeStyle(4, 0xe6d2a8);
-            
-            // Set the rotation to match the original dough
-            slice.rotation = this.dough.rotation;
-        }
-        
-        // Store which side this slice is on
-        slice.side = side;
-        
-        return slice;
-    }
-    
-    animateSlicesSeparation() {
-        // Add a small animation to show the slices separating
-        const separationDistance = 5; // pixels to separate
-        
-        this.doughSlices.forEach(slice => {
-            if (slice.side === 'left') {
-                if (slice.customBounds) {
-                    // For custom shapes, we need to update the bounds and redraw
-                    this.tweens.add({
-                        targets: slice.customBounds,
-                        centerX: slice.customBounds.centerX - separationDistance,
-                        left: slice.customBounds.left - separationDistance,
-                        right: slice.customBounds.right - separationDistance,
-                        duration: 200,
-                        ease: 'Power2',
-                        onUpdate: () => {
-                            // Force position update
-                            slice.x = slice.customBounds.centerX;
-                        }
-                    });
-                } else {
-                    // For regular game objects
-                    this.tweens.add({
-                        targets: slice,
-                        x: slice.x - separationDistance,
-                        duration: 200,
-                        ease: 'Power2'
-                    });
-                }
-            } else if (slice.side === 'right') {
-                if (slice.customBounds) {
-                    // For custom shapes, we need to update the bounds and redraw
-                    this.tweens.add({
-                        targets: slice.customBounds,
-                        centerX: slice.customBounds.centerX + separationDistance,
-                        left: slice.customBounds.left + separationDistance,
-                        right: slice.customBounds.right + separationDistance,
-                        duration: 200,
-                        ease: 'Power2',
-                        onUpdate: () => {
-                            // Force position update
-                            slice.x = slice.customBounds.centerX;
-                        }
-                    });
-                } else {
-                    // For regular game objects
-                    this.tweens.add({
-                        targets: slice,
-                        x: slice.x + separationDistance,
-                        duration: 200,
-                        ease: 'Power2'
-                    });
-                }
-            }
+            x: x,
+            relativeX: x - this.dough.x, // Store position relative to dough center
+            distanceFromCenter: distanceFromCenter // Store for later recalculation
         });
     }
 
@@ -895,63 +618,73 @@ export default class GameScene extends Phaser.Scene {
             // Calculate how much to move the dough based on pointer movement
             const dragDistance = pointer.x - this.lastPointerPosition.x;
             
-            // Move all dough slices right proportionally to the drag with sensitivity applied
+            // Move the dough right proportionally to the drag with sensitivity applied
             const moveAmount = dragDistance * this.moveSensitivity;
             
-            if (this.doughSlices.length > 0) {
-                // Move all slices
-                this.doughSlices.forEach(slice => {
-                    if (slice.customBounds) {
-                        // For custom shapes, update the bounds
-                        slice.customBounds.left += moveAmount;
-                        slice.customBounds.right += moveAmount;
-                        slice.customBounds.centerX += moveAmount;
-                        // Force position update
-                        slice.x = slice.customBounds.centerX;
-                    } else {
-                        // For regular game objects
-                        slice.x += moveAmount;
-                    }
-                });
+            // Move the dough
+            this.dough.x += moveAmount;
+            
+            // Move all cut lines with the dough
+            this.cutLines.forEach(cutLine => {
+                // Update the absolute position based on the dough's new position
+                const newX = this.dough.x + cutLine.relativeX;
                 
-                // Check if the rightmost slice reached the end position
-                const rightmostSlice = this.doughSlices.reduce((rightmost, slice) => {
-                    const currentRight = slice.customBounds ? 
-                        slice.customBounds.right : 
-                        slice.x + slice.displayWidth/2;
-                    
-                    const maxRight = rightmost.customBounds ? 
-                        rightmost.customBounds.right : 
-                        rightmost.x + rightmost.displayWidth/2;
-                    
-                    return (currentRight > maxRight) ? slice : rightmost;
-                }, this.doughSlices[0]);
-                
-                const rightEdge = rightmostSlice.customBounds ? 
-                    rightmostSlice.customBounds.right : 
-                    rightmostSlice.x + rightmostSlice.displayWidth/2;
-                
-                if (rightEdge >= this.doughEndX) {
-                    // Increment counter and reset game state
-                    this.rolledDoughCount++;
-                    console.log('Dough completed! Count:', this.rolledDoughCount);
-                    this.updateCounter();
-                    this.resetDough();
-                }
-            } else {
-                // If no slices (shouldn't happen), move the original dough
-                this.dough.x += moveAmount;
-                
-                // Check if dough reached the end position
-                if (this.dough.x >= this.doughEndX) {
-                    // Increment counter and reset game state
-                    this.rolledDoughCount++;
-                    console.log('Dough completed! Count:', this.rolledDoughCount);
-                    this.updateCounter();
-                    this.resetDough();
-                }
+                // Move the graphics
+                this.updateCutLinePosition(cutLine, newX);
+            });
+            
+            // Check if dough reached the end position
+            if (this.dough.x >= this.doughEndX) {
+                // Increment counter and reset game state
+                this.rolledDoughCount++;
+                console.log('Dough completed! Count:', this.rolledDoughCount);
+                this.updateCounter();
+                this.resetDough();
             }
         }
+    }
+    
+    updateCutLinePosition(cutLine, newX) {
+        // Update the stored x position
+        cutLine.x = newX;
+        
+        // Calculate the dough visual radius
+        const doughRadius = this.dough.displayHeight / 2 * 0.8;
+        
+        // Use the stored distance from center to calculate the vertical height
+        const distanceFromCenter = cutLine.distanceFromCenter;
+        
+        // Calculate the vertical height at this x position using the circle equation
+        const verticalRadius = Math.sqrt(Math.max(0, doughRadius * doughRadius - distanceFromCenter * distanceFromCenter));
+        
+        // Calculate start and end Y positions
+        const startY = this.dough.y - verticalRadius;
+        const endY = this.dough.y + verticalRadius;
+        
+        // Clear previous graphics
+        cutLine.graphics.clear();
+        cutLine.glowGraphics.clear();
+        
+        // Redraw main line
+        cutLine.graphics.lineStyle(4, 0xffffff, 0.9);
+        cutLine.graphics.beginPath();
+        cutLine.graphics.moveTo(newX, startY);
+        cutLine.graphics.lineTo(newX, endY);
+        cutLine.graphics.strokePath();
+        
+        // Redraw shadow
+        cutLine.graphics.lineStyle(2, 0x000000, 0.5);
+        cutLine.graphics.beginPath();
+        cutLine.graphics.moveTo(newX + 2, startY);
+        cutLine.graphics.lineTo(newX + 2, endY);
+        cutLine.graphics.strokePath();
+        
+        // Redraw glow
+        cutLine.glowGraphics.lineStyle(6, 0xffffff, 0.3);
+        cutLine.glowGraphics.beginPath();
+        cutLine.glowGraphics.moveTo(newX, startY);
+        cutLine.glowGraphics.lineTo(newX, endY);
+        cutLine.glowGraphics.strokePath();
     }
 
     getPointerAngle(pointer) {
@@ -976,8 +709,12 @@ export default class GameScene extends Phaser.Scene {
         // Update progress bar fill
         this.progressBarFill.setDisplaySize(barWidth, 40);
         
-        // Update progress text
+        // Update progress text with improved readability
         this.progressText.setText(`${Math.floor(progressPercent)}%`);
+        this.progressText.setFill('#ffffff');
+        
+        // Add text shadow for better readability against any background
+        this.progressText.setShadow(2, 2, '#000000', 3, true, true);
     }
 
     updateCuttingProgress() {
@@ -987,8 +724,12 @@ export default class GameScene extends Phaser.Scene {
         // Update progress bar fill
         this.progressBarFill.setDisplaySize(barWidth, 40);
         
-        // Update progress text
+        // Update progress text with improved readability
         this.progressText.setText(`${this.cutsMade}/${this.requiredCuts} cuts`);
+        this.progressText.setFill('#ffffff');
+        
+        // Add text shadow for better readability against any background
+        this.progressText.setShadow(2, 2, '#000000', 3, true, true);
     }
 
     updateCounter() {
@@ -1032,14 +773,6 @@ export default class GameScene extends Phaser.Scene {
         this.cutLines = [];
         this.cutsMade = 0;
         
-        // Clear dough slices
-        this.doughSlices.forEach(slice => {
-            if (slice) {
-                slice.destroy();
-            }
-        });
-        this.doughSlices = [];
-        
         // Hide cutting guide
         if (this.cuttingGuideContainer) {
             this.cuttingGuideContainer.setVisible(false);
@@ -1068,10 +801,8 @@ export default class GameScene extends Phaser.Scene {
         // Make the guide visible
         this.cuttingGuideContainer.setVisible(true);
         
-        // Calculate the dough bounds
-        const doughTop = this.dough.y - (this.dough.displayHeight / 2);
-        const doughBottom = this.dough.y + (this.dough.displayHeight / 2);
-        const doughHeight = this.dough.displayHeight;
+        // Calculate the dough bounds using the visual radius
+        const doughRadius = this.dough.displayHeight / 2 * 0.8;
         const doughWidth = this.dough.displayWidth;
         const doughLeft = this.dough.x - (doughWidth / 2);
         const doughRight = this.dough.x + (doughWidth / 2);
@@ -1081,15 +812,24 @@ export default class GameScene extends Phaser.Scene {
             const lineX = doughLeft + ((i + 1) * doughWidth / (this.requiredCuts + 1));
             const guideGraphics = this.cuttingGuideLines[i];
             
+            // Calculate how far this guide is from the dough center horizontally
+            const distanceFromCenter = Math.abs(lineX - this.dough.x);
+            
+            // Calculate the vertical height at this x position using the circle equation
+            const verticalRadius = Math.sqrt(Math.max(0, doughRadius * doughRadius - distanceFromCenter * distanceFromCenter));
+            
+            // Calculate start and end Y positions
+            const startY = this.dough.y - verticalRadius;
+            const endY = this.dough.y + verticalRadius;
+            
             // Clear and redraw
             guideGraphics.clear();
-            guideGraphics.lineStyle(2, 0xffff00, 0.5);
+            guideGraphics.lineStyle(2, 0x00ffff, 0.7); // Brighter cyan color for better visibility
             
             // Draw a dashed line manually by creating small line segments
             const dashLength = 5;
             const gapLength = 5;
-            let dashY = doughTop - 20; // Extend beyond dough
-            const endY = doughBottom + 20;
+            let dashY = startY; // Start at top of calculated height
             
             while (dashY < endY) {
                 // Draw a dash
@@ -1165,9 +905,18 @@ export default class GameScene extends Phaser.Scene {
         }
     }
 
-    addCutEffect(x, y, height) {
-        // Create a flash effect for the cut
-        const flash = this.add.rectangle(x, y, 10, height, 0xffffff);
+    addCutEffect(x, y) {
+        // Calculate the dough visual radius
+        const doughRadius = this.dough.displayHeight / 2 * 0.8;
+        
+        // Calculate how far this cut is from the dough center horizontally
+        const distanceFromCenter = Math.abs(x - this.dough.x);
+        
+        // Calculate the vertical height at this x position using the circle equation
+        const verticalRadius = Math.sqrt(Math.max(0, doughRadius * doughRadius - distanceFromCenter * distanceFromCenter));
+        
+        // Create a flash effect for the cut with the calculated height
+        const flash = this.add.rectangle(x, y, 10, verticalRadius * 2, 0xffffff);
         flash.setAlpha(0.8);
         
         // Animate the flash
@@ -1215,6 +964,14 @@ export default class GameScene extends Phaser.Scene {
             this.updateDebugInfo();
         }
         
+        // Update cut lines if dough has changed position or scale
+        if (this.currentState === this.gameState.MOVING_TO_FINISH && this.cutLines.length > 0) {
+            this.cutLines.forEach(cutLine => {
+                const newX = this.dough.x + cutLine.relativeX;
+                this.updateCutLinePosition(cutLine, newX);
+            });
+        }
+        
         // Check for orientation changes on mobile
         const width = this.cameras.main.width;
         const height = this.cameras.main.height;
@@ -1241,14 +998,24 @@ export default class GameScene extends Phaser.Scene {
             // Update counter display position
             if (this.counterBg) {
                 this.counterBg.clear();
-                this.counterBg.fillStyle(0xffffff, 0.8);
+                this.counterBg.fillStyle(0x333333, 0.8);
                 this.counterBg.fillRoundedRect(width - 150, 20, 130, 60, 10);
-                this.counterBg.lineStyle(2, 0xcccccc, 1);
+                this.counterBg.lineStyle(2, 0x555555, 1);
                 this.counterBg.strokeRoundedRect(width - 150, 20, 130, 60, 10);
                 
                 this.counterTitle.setPosition(width - 85, 35);
                 this.counterValue.setPosition(width - 85, 60);
             }
+            
+            // Ensure debug button container is on top
+            if (this.debugButtonContainer) {
+                this.debugButtonContainer.setDepth(1000);
+            }
+        }
+        
+        // Always ensure debug button is on top and interactive
+        if (this.debugButton && !this.debugButton.input.enabled) {
+            this.debugButton.setInteractive({ useHandCursor: true });
         }
     }
 } 

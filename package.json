@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "An idle/cooking game about making ramen noodles",
   "main": "index.js",
+  "homepage": "https://YOUR_USERNAME.github.io/03-12-ramen",
   "scripts": {
     "start": "parcel src/index.html",
     "build": "parcel build src/index.html --public-url ./",
