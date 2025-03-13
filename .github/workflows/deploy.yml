@@ -32,6 +32,13 @@ jobs:
       
       - name: Build
         run: npm run build
+        
+      - name: Debug dist directory
+        run: |
+          echo "Contents of dist directory:"
+          ls -la dist
+          echo "Contents of dist/index.html:"
+          cat dist/index.html | head -20
       
       - name: Setup Pages
         uses: actions/configure-pages@v3

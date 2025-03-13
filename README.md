@@ -15,9 +15,7 @@ Each completed cycle adds to your rolled dough count, which can later be used fo
 ## Play Online
 
 You can play the latest version of the game on GitHub Pages:
-[Play Ramen Noodle Maker](https://YOUR_USERNAME.github.io/03-12-ramen/)
-
-*Note: Replace 'YOUR_USERNAME' with your actual GitHub username once deployed.*
+[Play Ramen Noodle Maker](https://potnoodledev.github.io/03-12-ramen/)
 
 ## Development Setup
 
