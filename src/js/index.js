@@ -10,7 +10,18 @@ const config = {
     backgroundColor: '#f8f8f8',
     scale: {
         mode: Phaser.Scale.FIT,
-        autoCenter: Phaser.Scale.CENTER_BOTH
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+        parent: 'game-container',
+        width: 640,
+        height: 960,
+        min: {
+            width: 320,
+            height: 480
+        },
+        max: {
+            width: 1280,
+            height: 1920
+        }
     },
     physics: {
         default: 'arcade',
@@ -34,4 +45,9 @@ window.addEventListener('load', () => {
     document.addEventListener('touchmove', (e) => {
         e.preventDefault();
     }, { passive: false });
+    
+    // Handle iOS Safari viewport issues
+    if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        window.scrollTo(0, 0);
+    }
 }); 
