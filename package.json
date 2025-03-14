@@ -8,7 +8,7 @@
     "start": "parcel src/index.html",
     "build": "parcel build src/index.html --public-url ./ && cp src/.nojekyll dist/",
     "predeploy": "npm run build",
-    "deploy": "touch dist/.nojekyll && gh-pages -d dist",
+    "deploy": "echo \"ramen.potnoodle.dev\" > dist/CNAME && touch dist/.nojekyll && gh-pages -d dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
